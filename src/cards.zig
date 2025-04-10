@@ -1,6 +1,6 @@
-const Allocator = @import("std").mem.Allocator;
-const Random = @import("std").crypto.random;
-const print = @import("std").debug.print;
+const std = @import("std");
+const rndom = @import("std").crypto.random;
+const assert = std.debug.assert;
 
 pub const Rank = enum(u4) {
     two,
@@ -17,8 +17,11 @@ pub const Rank = enum(u4) {
     king,
     ace,
     jocker,
-    pub fn getName(self: Rank) []const u8 {
+    pub inline fn getName(self: Rank) []const u8 {
         return ranks_names[@intFromEnum(self)];
+    }
+    pub inline fn toInt(self: Rank) u4 {
+        return @bitCast(self);
     }
 };
 
@@ -27,8 +30,11 @@ pub const Suit = enum(u2) {
     diamonds,
     hearts,
     spades,
-    pub fn getName(self: Suit) []const u8 {
+    pub inline fn getName(self: Suit) []const u8 {
         return suits_names[@intFromEnum(self)];
+    }
+    pub inline fn toInt(self: Suit) u2 {
+        return @bitCast(self);
     }
 };
 
@@ -43,44 +49,54 @@ pub const Card = packed struct(u8) {
     pub inline fn put(self: *Card) void {
         self.taken = false;
     }
+    pub inline fn toInt(self: Card) u8 {
+        return @bitCast(self);
+    }
 };
 
+pub inline fn cardFromInt(i: u8) Card {
+    return @bitCast(i + (i / 14) * 2);
+}
+pub fn cardComp(_: void, a: Card, b: Card) bool {
+    return a.toInt() < b.toInt();
+}
 pub const Deck = struct {
-    cards: []Card,
-    alloc: Allocator,
+    cards: *[56]Card,
+    alloc: std.mem.Allocator,
     top: usize,
-    pub fn init(alloc: Allocator) !Deck {
-        const cards = init: {
-            var val = try alloc.alloc(Card, 56);
-            for (0..suits_names.len) |suit_i| {
-                for (0..ranks_names.len) |rank_i| {
-                    const idx = (ranks_names.len * suit_i) + rank_i;
-                    val[idx] = .{
-                        .suit = @enumFromInt(suit_i),
-                        .rank = @enumFromInt(rank_i),
-                    };
-                    // print(" {} {s} {s}\n ", .{ idx, cards[idx].rank.getName(), cards[idx].suit.getName() });
-                }
-            }
-            break :init val;
-        };
+    pub fn init(alloc: std.mem.Allocator) !Deck {
+        const cards = try alloc.create([56]Card);
+        for (cards, 0..) |*value, i|
+            value.* = cardFromInt(@truncate(i));
 
         return .{ .cards = cards, .alloc = alloc, .top = cards.len - 1 };
     }
-    pub fn deinit(self: Deck) void {
-        self.alloc.free(self.cards);
+    pub fn deinit(self: *Deck) void {
+        self.alloc.destroy(self.cards);
     }
-    pub fn sort() void {}
-    pub fn shuffle(self: Deck, repeat: usize) void {
+    pub fn sort(self: *Deck) void {
+        std.mem.sort(Card, self.cards, {}, cardComp);
+    }
+    pub fn shuffle(self: *Deck, repeat: usize) void {
         for (0..repeat) |_| {
-            const random_idx_first: usize = Random.int(usize) % self.cards.len;
-            const random_idx_secend: usize = Random.int(usize) % self.cards.len;
-            const tmp: Card = self.cards[random_idx_first];
-            self.cards[random_idx_first] = self.cards[random_idx_secend];
-            self.cards[random_idx_secend] = tmp;
+            const idx_first: usize = std.crypto.random.int(usize) % self.cards.len;
+            const idx_secend: usize = std.crypto.random.int(usize) % self.cards.len;
+            const tmp: Card = self.cards[idx_first];
+            self.cards[idx_first] = self.cards[idx_secend];
+            self.cards[idx_secend] = tmp;
         }
     }
 };
 
 pub const ranks_names = [_][]const u8{ "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace", "jocker" };
 pub const suits_names = [_][]const u8{ "clubs", "diamonds", "hearts", "spades" };
+//pub const suits_names2 = enumNames(Suit);
+
+fn enumNames(comptime T: anytype) type {
+    const field = @typeInfo(T).@"enum".fields;
+    var arr = std.mem.zeroes([field.len][]const u8);
+    for (0..arr.len) |i| {
+        arr[i] = field[i].name;
+    }
+    return arr;
+}

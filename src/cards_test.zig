@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const expect = std.testing.expect;
 
 const cg = @import("./cards.zig");
 
@@ -40,13 +41,15 @@ test "Stack.init() initializes and Stack.deinit() deinitializes correctly" {
 
     try testing.expectEqual(56, stack.cards.len);
 
-    // for (0..stack.cards.len) |i| {
-    //     const expected_rank: cg.Rank = @enumFromInt(i % cg.ranks_names.len);
-    //     const expected_suit: cg.Suit = @enumFromInt(i % cg.suits_names.len);
-    //     try testing.expectEqual(expected_rank, stack.cards[i].rank);
-    //     try testing.expectEqual(expected_suit, stack.cards[i].suit);
-    //     try testing.expectEqual(false, stack.cards[i].taken);
-    // }
+    for (0..cg.suits_names.len) |suit_i| {
+        for (0..cg.ranks_names.len) |rank_i| {
+            const card = stack.cards[(cg.ranks_names.len * suit_i) + rank_i];
+            const suit: cg.Suit = @enumFromInt(suit_i);
+            const rank: cg.Rank = @enumFromInt(rank_i);
+            try expect(card.suit == suit);
+            try expect(card.rank == rank);
+        }
+    }
 }
 
 test "Card can be created with specific values" {
