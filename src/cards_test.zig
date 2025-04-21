@@ -36,7 +36,7 @@ test "Card struct has correct default values" {
 }
 
 test "Stack.init() initializes and Stack.deinit() deinitializes correctly" {
-    var stack = try cg.Deck.init(std.testing.allocator);
+    var stack = try cg.Deck.init(std.testing.allocator, 1);
     defer stack.deinit();
 
     try testing.expectEqual(56, stack.cards.len);

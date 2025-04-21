@@ -15,7 +15,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const vaxis = b.dependency("vaxis", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
+    exe_mod.addImport("vaxis", vaxis.module("vaxis"));
     exe_mod.addImport("cards_lib", lib_mod);
 
     const lib = b.addLibrary(.{
