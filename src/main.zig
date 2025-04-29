@@ -105,14 +105,3 @@ pub fn main() !void {
 
     try app.run(model.widget(), .{});
 }
-
-fn printDeck(deck: *lib.card.Deck) void {
-    for (deck.*.cards) |*card| {
-        const card_int: u8 = @bitCast(card.*);
-        std.debug.print("{}:{s}:{s}\n", .{
-            card_int,
-            card.suit.getName(),
-            card.rank.getName(),
-        });
-    }
-}

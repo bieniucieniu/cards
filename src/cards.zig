@@ -51,14 +51,12 @@ pub const Card = packed struct(u8) {
     suit: Suit = .clubs,
     taken: bool = false,
     _: u1 = 0,
-    pub inline fn take(self: *Card) void {
-        self.taken = true;
-    }
-    pub inline fn put(self: *Card) void {
-        self.taken = false;
-    }
+
     pub inline fn toInt(self: Card) u8 {
         return @bitCast(self);
+    }
+    pub inline fn mask(self: Card) Card {
+        return @bitCast(@as(u8, self) & 0b11111100);
     }
 };
 
@@ -71,21 +69,20 @@ pub fn cardComp(_: void, a: Card, b: Card) bool {
 }
 
 pub const Deck = struct {
-    cards: []Card,
+    cards: std.ArrayList(Card),
     alloc: std.mem.Allocator,
-    top: usize,
     pub fn init(alloc: std.mem.Allocator, decks_count: usize) !Deck {
-        const cards = try alloc.alloc(Card, single_deck_size * decks_count);
-        for (0..cards.len) |i|
-            cards[i] = cardFromIndex(i % single_deck_size, .{});
+        var cards: std.ArrayList(Card) = .init(alloc);
+        for (try cards.addManyAsSlice(single_deck_size * decks_count), 0..) |*ptr, i|
+            ptr.* = cardFromIndex(i % single_deck_size, .{});
 
-        return .{ .cards = cards, .alloc = alloc, .top = cards.len - 1 };
+        return .{ .cards = cards, .alloc = alloc };
     }
     pub fn deinit(self: Deck) void {
-        self.alloc.free(self.cards);
+        self.cards.deinit();
     }
     pub fn sort(self: Deck) void {
-        std.mem.sort(Card, self.cards, {}, cardComp);
+        std.mem.sort(Card, self.cards.items, {}, cardComp);
     }
     pub fn shuffle(self: Deck, repeat: usize) void {
         var idx_first: usize = undefined;
@@ -94,9 +91,9 @@ pub const Deck = struct {
         for (0..repeat) |_| {
             idx_first = std.crypto.random.int(usize) % self.cards.len;
             idx_secend = std.crypto.random.int(usize) % self.cards.len;
-            tmp = self.cards[idx_first];
-            self.cards[idx_first] = self.cards[idx_secend];
-            self.cards[idx_secend] = tmp;
+            tmp = self.cards.items[idx_first];
+            self.cards.items[idx_first] = self.cards.items[idx_secend];
+            self.cards.items[idx_secend] = tmp;
         }
     }
 };
