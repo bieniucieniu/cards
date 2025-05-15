@@ -98,20 +98,42 @@ pub const Deck = struct {
     }
 };
 
-pub const ranks_names = enumNames(Rank);
-pub const suits_names = enumNames(Suit);
+pub const ranks_names = fieldsNames(Rank);
+pub const suits_names = fieldsNames(Suit);
 pub const single_deck_size: usize = @typeInfo(Rank).@"enum".fields.len * @typeInfo(Suit).@"enum".fields.len;
 
-pub fn enumNames(comptime T: type) [@typeInfo(T).@"enum".fields.len][]const u8 {
-    var arr: [@typeInfo(T).@"enum".fields.len][]const u8 = undefined;
-    for (0..arr.len) |i|
-        arr[i] = @typeInfo(T).@"enum".fields[i].name;
-    return arr;
+// pub fn fieldsNames(comptime T: type) [@typeInfo(T).@"enum".fields.len][]const u8 {
+//     const fields = comptime @typeInfo(T).@"enum".fields;
+//     var arr: [fields.len][]const u8 = undefined;
+//     for (0..arr.len) |i|
+//         arr[i] = fields[i].name;
+//     return arr;
+// }
+//
+const Type = std.builtin.Type;
+
+pub fn getTypeFieldsType(comptime T: type) type {
+    return switch (@typeInfo(T)) {
+        .@"union" => []const Type.UnionField,
+        .@"enum" => []const Type.EnumField,
+        .@"struct" => []const Type.StructField,
+        else => unreachable,
+    };
 }
 
-pub fn unionNames(comptime T: type) [@typeInfo(T).@"union".fields.len][]const u8 {
-    var arr: [@typeInfo(T).@"union".fields.len][]const u8 = undefined;
+pub fn getTypeFields(comptime T: type) getTypeFieldsType(T) {
+    return switch (@typeInfo(T)) {
+        .@"union" => |e| e.fields,
+        .@"enum" => |e| e.fields,
+        .@"struct" => |e| e.fields,
+        else => unreachable,
+    };
+}
+
+pub fn fieldsNames(comptime T: type) [getTypeFields(T).len][]const u8 {
+    const fields = getTypeFields(T);
+    var arr: [fields.len][]const u8 = undefined;
     for (0..arr.len) |i|
-        arr[i] = @typeInfo(T).@"union".fields[i].name;
+        arr[i] = fields[i].name;
     return arr;
 }
