@@ -1,1 +1,1 @@
-# deck interface in zig
+# cards deck logic to learn zig
